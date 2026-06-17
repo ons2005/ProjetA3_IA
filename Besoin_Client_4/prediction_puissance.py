@@ -1,9 +1,9 @@
 import pandas as pd
-from sklearn.metrics import mean_squared_error, root_mean_squared_error
+from sklearn.metrics import mean_squared_error, root_mean_squared_error, r2_score
 
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import  OrdinalEncoder
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 
 import matplotlib.pyplot as plt
 
@@ -18,6 +18,12 @@ encoder= OrdinalEncoder()
 implantation_cat= data[["implantation_station"]]
 
 data[["implantation_station"]] = encoder.fit_transform(implantation_cat)
+
+data[["prise_type_ef"]] = data[["prise_type_ef"]].fillna(data[["prise_type_ef"]].median())
+data[["prise_type_2"]] = data[["prise_type_2"]].fillna(data[["prise_type_2"]].median())
+data[["prise_type_autre"]] = data[["prise_type_autre"]].fillna(data[["prise_type_autre"]].median())
+data[["prise_type_combo_ccs"]] = data[["prise_type_combo_ccs"]].fillna(data[["prise_type_combo_ccs"]].median())
+data[["prise_type_chademo"]] = data[["prise_type_chademo"]].fillna(data[["prise_type_chademo"]].median())
 
 
 #sélectionne les données X et Y
@@ -34,23 +40,23 @@ Xvalid, Xtest = train_test_split(Xvalidtest,train_size=0.5)
 ytrain, yvalidtest = train_test_split(dataY,train_size=0.6)
 yvalid, ytest = train_test_split(yvalidtest,train_size=0.5)
 
-tree= DecisionTreeRegressor()
+forest= RandomForestRegressor()
 
-tree.fit(X=Xtrain,y=ytrain)
+forest.fit(X=Xtrain,y=ytrain)
 
-ypred= tree.predict(X=Xtest)
+ypred= forest.predict(X=Xtest)
 
 print(pow(mean_squared_error(y_true=ytest, y_pred=ypred),exp=0.5))
 
 
 param_grid = {
-    'max_features': ['auto', 'sqrt', 'log2'],
+    'max_features': [1.0, 'sqrt', 'log2'],
     'max_depth': [None,4, 5, 6, 7, 8],
     'criterion': ['squared_error', 'absolute_error', 'poisson'],
-    'splitter': ['best','random']
+    'n_estimators': [1,10,100]
 }
 
-grid= GridSearchCV(estimator=tree,param_grid=param_grid,scoring="neg_root_mean_squared_error")
+grid= GridSearchCV(estimator=forest,param_grid=param_grid,scoring="r2")
 
 # Fit the model
 grid.fit(Xtrain, ytrain)
@@ -63,8 +69,8 @@ print("Best cross-validation score: ", grid.best_score_)
 y_pred = grid.predict(Xtest)
 
 # Evaluate the model
-score = root_mean_squared_error(ytest, ypred)
-print("score RMSE: ", score)
+score = r2_score(ytest, ypred)
+print("score r2: ", score)
 
 
 
