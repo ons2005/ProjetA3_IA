@@ -33,11 +33,12 @@ def predict(dataa):
     for i in dataa.keys():
         dataa[[i]] = encoder.fit_transform(dataa[[i]])
 
-    # prédiction de la puissance
+    # sélection des données utiles
     values = dataa[["datagouv_dataset_id", "implantation_station", "nom_operateur", "prise_type_combo_ccs", "nom_amenageur",
          "datagouv_organization_or_owner", "prise_type_chademo", "prise_type_2", "restriction_gabarit",
          "contact_amenageur"]].copy()
 
+    # prédiction de la puissance
     return model.predict(values)
 
 if __name__ == "__main__":
