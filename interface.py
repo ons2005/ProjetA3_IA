@@ -1,74 +1,78 @@
-import streamlit as st
-import pandas as pd
-from sklearn.cluster import KMeans
+import os
+import webbrowser
 import folium
-from streamlit_folium import st_folium
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
 
-# Importation de vos modules
-from recherche_cluster import determiner_meilleur_k
-from point_recherche import verifier_coordonnees_france
-
-# --- Configuration ---
-st.set_page_config(page_title="Bornes Recharge", layout="wide")
+# Palette de couleurs pour les 5 clusters
+COULEURS_CLUSTERS = ["red", "blue", "green", "purple", "orange"]
 
 
-@st.cache_data
-def load_data():
+def main():
+    print("--- LANCEMENT RAPIDE ---")
+
+    # 1. Chargement et entraînement flash (K=5 imposé)
+    print("Initialisation des 5 zones de recharge...")
     df = pd.read_csv("BDD_nettoyé_IA.csv", sep=",", encoding="utf8", low_memory=False)
-    df = df.dropna(subset=["consolidated_latitude", "consolidated_longitude"])
-    return df
+
+    colonne_lat = "consolidated_latitude"
+    colonne_lon = "consolidated_longitude"
+    df = df.dropna(subset=[colonne_lat, colonne_lon])
+    X = df[[colonne_lat, colonne_lon]]
+
+    # On va droit au but : entraînement direct avec 5 clusters
+    kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+    kmeans.fit(X)
+    centroides = kmeans.cluster_centers_
+
+    # 2. Demande immédiate des coordonnées à l'utilisateur
+    print("\n--- RECHERCHE DE VOTRE POSITION ---")
+    while True:
+        try:
+            user_lat = float(input("Entrez la latitude (ex: 48.85) : "))
+            user_lon = float(input("Entrez la longitude (ex: 2.35) : "))
+
+            # Vérification si on est bien en France
+            if 41.3 <= user_lat <= 51.1 and -5.2 <= user_lon <= 9.6:
+                break
+
+            print(" Erreur : Les coordonnées doivent être en France (Lat: 41.3 à 51.1 / Lon: -5.2 à 9.6).")
+        except ValueError:
+            print(" Erreur : Veuillez entrer des nombres valides.")
+
+    # 3. Prédiction du cluster pour le point utilisateur
+    point = np.array([[user_lat, user_lon]])
+    cluster_predit = int(kmeans.predict(point)[0])
+    couleur_point = COULEURS_CLUSTERS[cluster_predit]
+
+    print(f"\n-> Votre point appartient au Cluster n°{cluster_predit} (Couleur : {couleur_point})")
+
+    # 4. Création et affichage de la carte
+    carte = folium.Map(location=[user_lat, user_lon], zoom_start=7)
+
+    # Marqueur de l'utilisateur
+    folium.Marker(
+        location=[user_lat, user_lon],
+        popup=f"<b>Votre position</b><br>Cluster : {cluster_predit}",
+        icon=folium.Icon(color="light_green", icon="user")
+    ).add_to(carte)
+
+    # Ajout des 5 centroïdes sur la carte
+    for i, c in enumerate(centroides):
+        folium.Marker(
+            location=[c[0], c[1]],
+            popup=f"<b>Centre du Cluster {i}</b>",
+            icon=folium.Icon(color="blue" if i != cluster_predit else "red", icon="plug", prefix="fa")
+        ).add_to(carte)
+
+    # Sauvegarde et ouverture automatique du navigateur
+    nom_fichier = "carte_directe_utilisateur.html"
+    carte.save(nom_fichier)
+    webbrowser.open("file://" + os.path.realpath(nom_fichier))
+
+    print(f"\n Terminé ! La carte a été générée et ouverte dans votre navigateur ({nom_fichier}).")
 
 
-df = load_data()
-col_lat, col_lon = "consolidated_latitude", "consolidated_longitude"
-X = df[[col_lat, col_lon]]
-
-# --- Menu ---
-menu = st.sidebar.radio("Navigation", ["1. Analyse", "2. Carte complète", "3. Recherche de point"])
-
-# --- Fonctionnalités ---
-
-if menu == "1. Analyse":
-    st.header("Analyse des Clusters")
-    if st.button("Lancer l'analyse (Graphiques)"):
-        # Note: ceci affichera les graphiques dans la console/fenêtre locale Matplotlib
-        k = determiner_meilleur_k(X)
-        st.write(f"Meilleur K calculé : {k}")
-
-elif menu == "2. Carte complète":
-    st.header("Visualisation complète")
-    nb_clusters = st.slider("Nombre de clusters", 2, 15, 5)
-
-    if st.button("Générer la carte"):
-        kmeans = KMeans(n_clusters=nb_clusters, random_state=42, n_init=10).fit(X)
-        df["cluster"] = kmeans.labels_
-
-        # Création de la carte
-        m = folium.Map(location=[46.6, 1.8], zoom_start=6)
-        for _, ligne in df.iterrows():
-            folium.CircleMarker(
-                location=[ligne[col_lat], ligne[col_lon]],
-                radius=1,
-                color="blue",
-                popup=f"Cluster: {int(ligne['cluster'])}"
-            ).add_to(m)
-        st_folium(m, width=800, height=500)
-
-elif menu == "3. Recherche de point":
-    st.header("Recherche par coordonnées")
-    user_lat = st.number_input("Latitude", value=46.6033)
-    user_lon = st.number_input("Longitude", value=1.8883)
-    nb_clusters = st.slider("Nombre de clusters pour le modèle", 2, 15, 5)
-
-    if st.button("Localiser"):
-        if verifier_coordonnees_france(user_lat, user_lon):
-            kmeans = KMeans(n_clusters=nb_clusters, random_state=42, n_init=10).fit(X)
-            cluster_predit = kmeans.predict([[user_lat, user_lon]])[0]
-            st.success(f"Le point appartient au cluster n°{cluster_predit}")
-
-            # Affichage carte simplifiée
-            m = folium.Map(location=[user_lat, user_lon], zoom_start=8)
-            folium.Marker([user_lat, user_lon], popup="Votre position").add_to(m)
-            st_folium(m, width=800, height=500)
-        else:
-            st.error("Coordonnées hors de France.")
+if __name__ == "__main__":
+    main()

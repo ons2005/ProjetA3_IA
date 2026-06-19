@@ -26,15 +26,9 @@ carte = folium.Map(location=[46.603354, 1.888334], zoom_start=6)
 
 # Liste de couleurs pour vos 5 clusters
 couleurs_clusters = [
-    "#FFB7B2",
-    "#FFDAC1",
-    "#E2F0CB",
-    "#A7E9EA",
-    "#C7CEEA",
-    "#D8B4F8",
-    "#E8A0BF",
-    "#FEDEFF",
-    "#FFE5A3"
+    "red", "blue", "green", "purple", "orange",
+    "darkred", "darkblue", "darkgreen", "cadetblue", "pink",
+    "gray", "black", "lightred", "lightblue", "lightgreen"
     ]
 
 # 5. Ajout de TOUTES les bornes de recharge sur la carte

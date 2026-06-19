@@ -17,7 +17,14 @@ COULEURS_CLUSTERS = [
 
 
 def generer_carte_complete(df, colonne_lat, colonne_lon):
-    """Affiche la carte de France complète avec toutes les données de la BDD"""
+    """Affiche la carte de France complète si elle n'existe pas, sinon l'ouvre directement"""
+    nom_fichier = "carte_toutes_les_bornes.html"
+
+    if os.path.exists(nom_fichier):
+        print(f"\n[Info] La carte globale existe déjà. Ouverture directe de {nom_fichier}...")
+        webbrowser.open("file://" + os.path.realpath(nom_fichier))
+        return
+
     print(f"\nGénération de la carte globale ({len(df)} bornes de recharge)...")
     carte = folium.Map(location=[46.603354, 1.888334], zoom_start=6)
 
@@ -35,10 +42,9 @@ def generer_carte_complete(df, colonne_lat, colonne_lon):
             popup=f"Cluster: {cluster_id}",
         ).add_to(carte)
 
-    nom_fichier = "carte_toutes_les_bornes.html"
     carte.save(nom_fichier)
     webbrowser.open("file://" + os.path.realpath(nom_fichier))
-    print(f"-> Carte complète ouverte dans votre navigateur ({nom_fichier}).")
+    print(f"-> Carte complète générée et ouverte ({nom_fichier}).")
 
 
 def main():
@@ -51,7 +57,7 @@ def main():
     df = df.dropna(subset=[colonne_lat, colonne_lon])
     X = df[[colonne_lat, colonne_lon]]
 
-    # 2. Étape d'analyse des modèles pour trouver le K idéal
+    # 2. Étape d'analyse des modèles pour trouver le K idéal (gère aussi le cache du graphique)
     meilleur_k = determiner_meilleur_k(X)
 
     # 3. Application du modèle K-Means final avec le K optimal trouvé
@@ -59,7 +65,7 @@ def main():
     kmeans_final = KMeans(n_clusters=meilleur_k, random_state=42, n_init=10)
     df["cluster"] = kmeans_final.fit_predict(X)
 
-    # 4. Génération de la carte complète (toutes les données)
+    # 4. Génération ou ouverture de la carte complète
     generer_carte_complete(df, colonne_lat, colonne_lon)
 
     # 5. Lancement du module interactif pour l'utilisateur

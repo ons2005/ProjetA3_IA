@@ -6,14 +6,13 @@ import numpy as np
 
 def verifier_coordonnees_france(lat, lon):
     """Vérifie si les coordonnées appartiennent à la France métropolitaine ou à la Corse"""
-    # Zone globale englobant la France continentale et la Corse
     lat_min, lat_max = 41.3, 51.1
     lon_min, lon_max = -5.2, 9.6
     return lat_min <= lat <= lat_max and lon_min <= lon <= lon_max
 
 
 def localiser_point_utilisateur(kmeans_modele, couleurs_clusters, colonne_lat, colonne_lon):
-    """Demande un point à l'utilisateur, trouve son cluster et affiche une carte allégée"""
+    """Demande un point à l'utilisateur, trouve son cluster et affiche la carte"""
     print("\n--- RECHERCHE DE CLUSTER VIA VOS COORDONNÉES ---")
 
     while True:
@@ -28,14 +27,14 @@ def localiser_point_utilisateur(kmeans_modele, couleurs_clusters, colonne_lat, c
         except ValueError:
             print("Erreur : Veuillez entrer des nombres valides.")
 
-    # 1. Prediction du cluster le plus proche via les centroïdes du modèle K-Means
+    # 1. Prédiction du cluster
     point = np.array([[user_lat, user_lon]])
     cluster_predit = int(kmeans_modele.predict(point)[0])
     couleur_point = couleurs_clusters[cluster_predit % len(couleurs_clusters)]
 
-    print(f"\n Votre point appartient au Cluster n°{cluster_predit}(Couleur : {couleur_point})")
+    print(f"\n Votre point appartient au Cluster n°{cluster_predit} (Couleur : {couleur_point})")
 
-    # 2. Création de la carte allégée (Uniquement le Pin et les centroïdes)
+    # 2. Création de la carte allégée (Générée à chaque fois car dépend des entrées utilisateur)
     carte_legere = folium.Map(location=[user_lat, user_lon], zoom_start=7)
 
     # Ajout du Pin de l'utilisateur
@@ -48,11 +47,10 @@ def localiser_point_utilisateur(kmeans_modele, couleurs_clusters, colonne_lat, c
     # Ajout de tous les centroïdes des clusters
     centroides = kmeans_modele.cluster_centers_
     for i, c in enumerate(centroides):
-        couleur_cent = couleurs_clusters[i % len(couleurs_clusters)]
         folium.Marker(
             location=[c[0], c[1]],
             popup=f"<b>Centre du Cluster {i}</b>",
-            icon=folium.Icon(color="blue" if i != cluster_predit else "red", icon="plug",prefix="fa")
+            icon=folium.Icon(color="blue" if i != cluster_predit else "red", icon="plug", prefix="fa")
         ).add_to(carte_legere)
 
     # Sauvegarde et ouverture
