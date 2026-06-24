@@ -9,17 +9,17 @@ model= jb.load("modèle_puissance.pkl")
 
 #création de données d'implantation
 
-data={
-    "datagouv_dataset_id": "6740a4d4ca0ce2aba15a3c68",
-    "implantation_station": "Voirie",
-    "nom_operateur": "SOLVEO ENERGIES",
-    "prise_type_combo_ccs": True,
-    "nom_amenageur": "SOLVEO ENERGIES",
-    "datagouv_organization_or_owner": "solveo-energies",
-    "prise_type_chademo": True,
-    "prise_type_2": False,
-    "restriction_gabarit": "max 2m",
-    "contact_amenageur": "t.prouin@sde23.fr"
+data={'prise_type_combo_ccs':False,
+    'implantation_station':"Voirie",
+    'nom_operateur' : "Solero",
+    'nom_amenageur' : "Solero",
+    'created_at' :"01-08-2005",
+    'prise_type_chademo' :False,
+    'tarification' :0,
+    'date_maj':"01-08-2005",
+    'contact_operateur' :"076025616102",
+    'prise_type_2':False,
+
 }
 
 data= pd.DataFrame(data, index=[0])
@@ -34,9 +34,7 @@ def predict(dataa):
         dataa[[i]] = encoder.fit_transform(dataa[[i]])
 
     # sélection des données utiles
-    values = dataa[["datagouv_dataset_id", "implantation_station", "nom_operateur", "prise_type_combo_ccs", "nom_amenageur",
-         "datagouv_organization_or_owner", "prise_type_chademo", "prise_type_2", "restriction_gabarit",
-         "contact_amenageur"]].copy()
+    values = dataa[['prise_type_combo_ccs', 'implantation_station', 'nom_operateur', 'nom_amenageur', 'created_at', 'prise_type_chademo', 'tarification', 'date_maj', 'contact_operateur', 'prise_type_2']].copy()
 
     # prédiction de la puissance
     return model.predict(values)
